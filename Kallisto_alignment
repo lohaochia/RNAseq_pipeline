@@ -1,0 +1,24 @@
+#!/usr/bin/bash
+#SBATCH -A MST109178                        # Account name/project number
+#SBATCH -J fastq_preprocessing              # Job name
+#SBATCH -p ngs372G                           # Partition Name 等同PBS裡面的 -q Queue name
+#SBATCH -c 56                                # 使用的core數 請參考Queue資源設定
+#SBATCH --mem=372g                           # 使用的記憶體量 請參考Queue資源設定
+#SBATCH -o %j.log                           # Path to the standard output file I
+#SBATCH -e %j.log                           # Path to the standard error ouput file
+#SBATCH --mail-user=lohaochia@ntu.edu.tw    # email
+#SBATCH --mail-type=END
+
+module load biology
+module load Kallisto/0.46.2
+########################################################
+######################################################
+#must create a templet index before alignment
+kallisto index -i Trinity_index.idx Trinity.fasta
+
+kallisto quant -i Trinity_index.idx \
+               -o output_I1_root \
+               -b 100 \
+               -t 8 \
+               /work/u1432917/Clean_read/I1_trimmed_R1.fq.gz \ #read1
+               /work/u1432917/Clean_read/I1_trimmed_R2.fq.gz  #read2
