@@ -1,0 +1,72 @@
+文氏圖圖
+setwd("C:/Users/t1240/OneDrive/桌面")
+rm(list = ls())
+F1F2=read.table("C.txt",header = T)
+F1F3=read.table("C.txt",header = T)
+F2F3=read.table("C.txt",header = T)
+M1M2=read.table("C.txt",header = T)
+M1M3=read.table("C.txt",header = T)
+M2M3=read.table("C.txt",header = T)
+
+# 讀取文件
+file_names <- c("F1F2.txt", "F1F3.txt", "F2F3.txt",
+                "M1M2.txt", "M1M3.txt", "M2M3.txt")
+file_names <- c("F1F2.txt",  "F2F3.txt",
+                "M1M2.txt",  "M2M3.txt")
+
+file_names <- c("F1F2.txt", "F1F3.txt", "F2F3.txt")
+file_names <- c("M1M2.txt", "M1M3.txt", "M2M3.txt")
+deg_list <- lapply(file_names, function(f) scan(f, what = "character"))
+names(deg_list) <- paste0("Group", 1:2)  # 给列表命名
+
+# 檢查結構
+str(deg_list)  # 应该看到 List of 6，每个元素是 chr [1:xxxx]
+
+# 安装 ggVennDiagram（如果未安装）
+#if (!requireNamespace("ggVennDiagram", quietly = TRUE)) {
+  #install.packages("ggVennDiagram")
+#}
+#install.packages("plotly")
+library(ggVennDiagram)
+library(ggplot2)
+library(plotly)
+# 绘制韦恩图
+ggVennDiagram(deg_list, label_alpha = 0, category.names = c("F2F3",   "M2M3"),label = "count" ) +
+  scale_fill_gradient(low = "white", high = "red")
+
+ggVennDiagram(deg_list, label_alpha = 0, category.names = c("M1M2", "M1M3","M2M3"),label = "count" ) +
+  scale_fill_gradient(low = "white", high = "red")
+############################################################################################################################
+#找出特異基因
+unique_genes <- lapply(names(deg_list), function(group) {
+  others <- setdiff(names(deg_list), group)  # 其他組合
+  unique_to_group <- setdiff(deg_list[[group]], unlist(deg_list[others]))
+  return(data.frame(Group = group, Unique_Genes = unique_to_group))
+})
+# 合併結果
+unique_genes_df <- do.call(rbind, unique_genes)
+print(unique_genes_df)
+write.csv(unique_genes_df, "S12_unique_genes_2.csv", row.names = FALSE)
+#查詢交集基因
+subset_common_genes <- Reduce(intersect, deg_list[c("Group1", "Group2")])
+print(subset_common_genes)
+length(subset_common_genes)
+write.csv(subset_common_genes, "S12_subset_common_genes.csv", row.names = FALSE)
+# 查看各區域基因
+mergeddeg <- merge(F1F2, M1M2, 
+                         by="GeneID",  
+                         all.x = TRUE,all.y = TRUE)
+mergeddeg <- merge(mergeddeg, F1F3, 
+                   by="GeneID",  
+                   all.x = TRUE,all.y = TRUE)
+mergeddeg <- merge(mergeddeg, M1M3, 
+                   by="GeneID",  
+                   all.x = TRUE,all.y = TRUE)
+mergeddeg <- merge(mergeddeg, F2F3, 
+                   by="GeneID",  
+                   all.x = TRUE,all.y = TRUE)
+mergeddeg <- merge(mergeddeg, M2M3, 
+                   by="GeneID",  
+                   all.x = TRUE,all.y = TRUE)
+
+write.csv(mergeddeg, "DEGmergeddeg.csv", row.names = FALSE)
