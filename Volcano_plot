@@ -1,0 +1,35 @@
+
+#####################################################################################################
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+BiocManager::install("EnhancedVolcano")
+
+library(EnhancedVolcano)
+
+# 讀取 DESeq2 結果（res 是 DESeq2 產生的結果）
+res_df <- read.csv("DEG_with_TPM_F3_M3.csv", row.names = 1)  
+
+
+
+# 繪製火山圖
+EnhancedVolcano(res_df,
+                lab = NA,              # 基因名稱標籤
+                x = 'log2FoldChange',                # X 軸：log2FC
+                y = 'padj',                           # Y 軸：調整後的 P 值
+                title = 'Volcano Plot of F3 vs. M3',        # 標題
+                pCutoff = 0.01,                       # 顯著性閥值 (adj p-value < 0.05)
+                FCcutoff = 1,                         # Log2FC 閥值 (>1 or < -1)
+                pointSize = 0.5,                       # 點的大小
+                labSize = 3.5,                         # 標籤大小
+                colAlpha = 0.75,                       # 點的透明度
+                legendPosition = 'right',              # 圖例位置
+                drawConnectors = TRUE,                 # 連接基因名稱與點
+                #ylim = c(0, 20) ,
+                widthConnectors = 0.5,                   # 連接線的寬度
+                legendLabels = c("Not Significant",     # 圖例 - 無顯著變化
+                                 "|Log2FC|>1；-LogP-adj<2",         # 圖例 - 只有 log2FC 超過閥值
+                                 "|Log2FC|<1；-LogP-adj>2",          # 圖例 - 只有 adj-pvalue 小於 0.05
+                                 "Significant DEG")     # 圖例 - 顯著差異表達基因
+)
+
