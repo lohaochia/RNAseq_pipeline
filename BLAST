@@ -1,0 +1,35 @@
+#!/usr/bin/bash
+#SBATCH -A MST109178                        # Account name/project number
+#SBATCH -J fastq_preprocessing              # Job name
+#SBATCH -p ngs13G                           # Partition Name 等同PBS裡面的 -q Queue name
+#SBATCH -c 2                                # 使用的core數 請參考Queue資源設定
+#SBATCH --mem=13g                           # 使用的記憶體量 請參考Queue資源設定
+#SBATCH -o %j.log                           # Path to the standard output file I
+#SBATCH -e %j.log                           # Path to the standard error ouput file
+#SBATCH --mail-user=lohaochia@ntu.edu.tw    # email
+#SBATCH --mail-type=END
+
+module load biology
+module load BLAST/BLAST+
+######################################
+#makeblastdb -in /work/u1432917/GCA_012931725.1_ASM1293172v1_genomic.fna -dbtype nucl -out /work/u1432917/macou_blastdb
+#blastn -query /work/u1432917/M12_uni_DEG_sequences.fasta \
+-db /work/u1432917/macou_blastdb \
+-task dc-megablast \
+-word_size 11 \
+-out /work/u1432917/macou_dc_megablast__penalty_1_4.txt \
+-evalue 1e-5 \
+-penalty -5 \
+-reward 1 \
+-outfmt 7 
+#makeblastdb -in /work/u1432917/GCA_012931725.1_ASM1293172v1_genomic.fna -dbtype nucl -out /work/u1432917/macou_blastdb
+#blastn -query /work/u1432917/M12_uni_DEG_sequences.fasta \
+-db /work/u1432917/macou_blastdb \
+-task megablast \
+-word_size 28 \
+-out /work/u1432917/macou_megablast_gap_2_2.txt \
+-evalue 1e-5 \
+-gapopen 2 \
+-gapextend 2 \
+-outfmt 7
+
