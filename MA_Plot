@@ -1,0 +1,36 @@
+# 讀取 DESeq2 結果（這是你已經獲得的 res dataframe）
+# 確保 res 包含 baseMean, log2FoldChange, padj 欄位
+#res_df <- read.csv("DEG_with_TPM_F1_M1.csv", row.names = 1)  # 請替換為你的檔案名稱
+#res_df <- as.data.frame(res)
+library(ggplot2)
+library(ggrepel)
+
+# 繪製 MA Plot
+ggplot(res_df, aes(x = log10(baseMean), y = log2FoldChange)) +
+  geom_point(alpha = 0.2, color = "gray50",size = 1) +  # 繪製所有點
+  geom_point(data = res_df[res_df$padj < 0.01 & !is.na(res_df$padj), ], 
+             aes(x = log10(baseMean), y = log2FoldChange), 
+             color = "red", alpha = 0.6,size = 1) +  # 標記顯著 DEG 基因
+  geom_hline(yintercept = c(-1, 1), linetype = "dashed", color = "blue") +  # 畫出 LFC 閥值
+  theme_minimal() +
+  #xlim(-1, 6)+
+  # 在圖的右上角添加小圖例
+  #annotate("point", x = 4, y = 8.5, color = "red", size = 3) +
+  #annotate("text", x = 4.05, y = 8.5, label = "adjp < 0.01", hjust = 0, size = 5) +
+  #annotate("point", x = 4, y = 8.0, color = "gray", size = 3) +
+  #annotate("text", x = 4.05, y = 8.0, label = "adjp ≥ 0.01", hjust = 0, size = 5)+
+  labs(title = "F3M3 MA Plot", x = "log10(baseMean)", y = "log2 Fold Change") +
+  theme(plot.title = element_text(hjust = 0.1))
+  #########################################################################
+  #########################################################################
+ggplot(res_df, aes(x = log10(baseMean), y = log2FoldChange)) +
+  geom_point(alpha = 0.4, color = "gray50",size = 1) +  # 繪製所有點
+  geom_point(data = res_df[res_df$padj < 10^-200 & !is.na(res_df$padj), ], 
+             aes(x = log10(baseMean), y = log2FoldChange), 
+             color = "red", alpha = 0.6,size = 1) +  # 標記極顯著 DEG 基因
+  geom_hline(yintercept = c(-1, 1), linetype = "dashed", color = "blue") +  # 畫出 LFC 閥值
+  theme_minimal() +
+  labs(title = "F3M3 MA Plot", x = "log10(baseMean)", y = "log2 Fold Change") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+plot(x = log10(res_df$baseMean), y = res_df$log2FoldChange)
