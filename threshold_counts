@@ -1,0 +1,29 @@
+library(dplyr)
+library(ggplot2)
+df <- read.csv("DEG_with_TPM_F1_M1.csv", row.names = 1)
+#利用DEseq輸出結果
+df$log_adjP <- -log10(df$padj)
+# 設定門檻範圍 (200 到 2，每次減少 1)
+thresholds <- seq(300, 2, by = -1)
+
+# 統計每個門檻下的轉錄體數量
+threshold_counts <- data.frame(
+  log_adjP_threshold = thresholds,
+  num_transcripts = sapply(thresholds, function(thr) sum(df$log_adjP > thr))
+)
+write.csv(threshold_counts, "threshold_counts.csv", row.names = FALSE)
+# 繪製折線圖
+x_intersect <- 10000
+y_intersect <- 11
+
+ggplot(threshold_counts, aes(x = num_transcripts, y = log_adjP_threshold)) +
+  geom_line() +  
+  geom_vline(xintercept = x_intersect, linetype = "dashed", color = "red") +  # 垂直虛線
+  geom_hline(yintercept = y_intersect, linetype = "dashed", color = "blue") + # 水平虛線
+  geom_text(aes(x = x_intersect + 500, y = y_intersect+7,  # 讓標籤稍微偏右
+                label = paste0("-log(adj_pvalue) = ",y_intersect)),
+            color = "black", hjust = 0) +  # hjust=0 讓文字靠左
+  coord_cartesian(xlim = c(0, 15000)) +  # 避免標籤被裁切
+  labs(x = "Number of Transcripts", y = "-log10(adj p-value)") +
+  theme_minimal()
+
