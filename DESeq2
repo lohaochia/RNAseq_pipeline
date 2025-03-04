@@ -1,0 +1,134 @@
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#  install.packages("BiocManager")
+
+#BiocManager::install("DESeq2")
+
+
+############################
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+#BiocManager::install(c("tximport", "readr"))
+
+
+
+
+
+
+# 載入必要的套件
+library(DESeq2)
+library(tximport)
+library(readr)
+library(writexl)
+
+# 定義輸入樣本和文件路徑
+samples <- c("output_F3_1", "output_F3_2", "output_F3_3", "output_M3_1", "output_M3_2", "output_M3_3")
+files <- file.path("C:/Users/t1240/OneDrive/桌面/kallisto_output", samples, "abundance.h5")
+names(files) <- samples
+
+# 載入 tx2gene 映射
+#tx2gene <- read.table("tx2gene_mapping.txt", header = TRUE)
+
+# 使用 tximport 導入表現量數據
+txi <- tximport(files, type = "kallisto", txOut = TRUE, countsFromAbundance = "lengthScaledTPM")
+
+# 檢查並處理計數數據
+counts <- txi$counts
+counts <- round(counts)
+if (any(counts < 0)) {
+  stop("Counts matrix contains negative values!")
+}
+
+
+# 構建樣本資訊表
+sample_info <- data.frame(
+  sampleName = colnames(counts),
+  group = c("F_3", "F_3", "F_3", "M_3", "M_3", "M_3")
+)
+rownames(sample_info) <- sample_info$sampleName
+
+# 設置 group 基準水平為 "F_2"
+sample_info$group <- relevel(factor(sample_info$group), ref = "M_3")
+
+# 建立 DESeqDataSet 對象
+dds <- DESeqDataSetFromMatrix(countData = counts, colData = sample_info, design = ~ group)
+
+# 差異表達分析
+dds <- DESeq(dds)
+
+# Wald 檢驗：獲取 M_1 vs F_1 的結果
+res_wald <- results(dds, contrast = c("group", "F_3", "M_3"))
+summary(res_wald)
+res_df <- as.data.frame(res_wald)
+# LRT 檢驗：比較完整模型與簡化模型
+#dds_lrt <- DESeq(dds, test = "LRT", reduced = ~ 1)
+#res_lrt <- results(dds_lrt)
+#summary(res_lrt)
+
+# 收縮 Log2 Fold Change（穩定效應量估計）
+#res_shrink <- lfcShrink(dds, coef = "group_F_1_vs_F_2", type = "apeglm")
+plotMA(res_wald, ylim = c(-16, 16))
+res_dfF3M3 <-res_df
+# 排序結果（按 P 值）
+resOrdered <- res_wald[order(res_wald$padj, na.last = NA), ]
+
+
+
+# 將 DESeq2 結果轉換為數據框
+res_df <- as.data.frame(resOrdered)
+
+# 確保 p 值列中沒有 NA 值
+res_df <- res_df[!is.na(res_df$pvalue), ]
+
+# 使用 qvalue 函數計算 q-value
+#qvals <- qvalue(res_df$pvalue)$qvalues
+
+# 將 q-value 添加到 DESeq2 結果數據框中
+#res_df$qvalue <- qvals
+
+# 查看包含 q-value 的結果
+#head(res_df)
+
+# 匯出包含 q-value 的結果
+
+
+
+
+
+# 顯著基因篩選（P 調整值 < 0.01）
+#significant_genes <- subset(res_df, qvalue < 0.01)
+############
+res_wald_df <- as.data.frame(res_df)
+res_wald_df <- cbind(GeneID = rownames(res_wald_df), res_wald_df)
+# 匯出完整結果
+#res_wald_df <- as.data.frame(res_wald)
+#res_df <- cbind(GeneID = rownames(res_df), res_df)
+# 获取 DESeq2 标准化后的 counts
+normalized_counts <- counts(dds, normalized=TRUE)
+# 将 normalized counts 转换为 data frame 并添加到 res
+normalized_counts_df <- as.data.frame(normalized_counts)
+colnames(normalized_counts_df) <- paste0("Norm_", colnames(normalized_counts_df))  # 重命名列名，避免冲突
+head(normalized_counts_df)
+
+# 將 normalized_counts_df 的 target_id 列名改為 GeneID
+normalized_counts_df$GeneID <- rownames(normalized_counts_df)  # 添加基因 ID
+
+# 使用 merge 进行合并（基于 Gene_ID）
+merged_results <- merge(res_wald_df, normalized_counts_df, by="GeneID")
+head(merged_results)
+write.csv(merged_results, "DEG_with_TPM_F1_M11.csv", row.names = FALSE)
+
+
+
+
+
+
+#reset par
+par(mfrow=c(1,1))
+# Make a basic volcano plot
+with(res_wald, plot(log2FoldChange, -log10(pvalue), pch=20, main="Volcano plot", xlim=c(-30,30)))
+
+# Add colored points: blue if padj<0.01, red if log2FC>1 and padj<0.05)
+with(subset(res_wald, padj<.01 ), points(log2FoldChange, -log10(pvalue), pch=20, col="blue"))
+with(subset(res_wald, padj<.01 & abs(log2FoldChange)>2), points(log2FoldChange, -log10(pvalue), pch=20, col="red"))
+#write_csv(significant_genes, "Significant_DEG_results_Wald.csv")
